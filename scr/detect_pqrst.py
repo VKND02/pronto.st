@@ -95,7 +95,7 @@ def plot_ecg_with_peaks(time, signal, r_peaks, method_name):
 
 # Exécution du script
 if __name__ == "__main__":
-    filepath = "pronto.st/data/data1/Sansinjection.txt"  # Chemin du fichier
+    filepath = "data/data1/Sansinjection.txt"  # Chemin du fichier
     time, signal = load_ecg_data(filepath)
     methods = ["biosppy"]  # Liste des méthodes à tester
     results = test_different_methods(time, signal, methods)
