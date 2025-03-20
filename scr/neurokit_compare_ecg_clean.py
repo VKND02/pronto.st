@@ -47,7 +47,7 @@ if __name__ == "__main__":
     filepath = "data/data1/Sansinjection.txt"
 
     # Définir la plage de temps souhaitée
-    start_time = 13.9  # Début à ... secondes
+    start_time = 10  # Début à ... secondes
     end_time = 50  # Fin à ... secondes
 
     df = load_ecg_data(filepath, start_time, end_time)

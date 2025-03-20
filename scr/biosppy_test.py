@@ -2,6 +2,7 @@ import biosppy.signals.ecg as biosppy_ecg
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.signal import butter, filtfilt
 
 
 def load_ecg_data(filepath, start_time, end_time):
@@ -43,6 +44,24 @@ def load_ecg_data(filepath, start_time, end_time):
         return None
 
 
+def butter_bandpass_filter(signal, lowcut, highcut, fs, order=4):
+    """
+    Applique un filtre passe-bande Butterworth sur le signal.
+    """
+    nyquist = 0.5 * fs
+    low = lowcut / nyquist
+    high = highcut / nyquist
+    b, a = butter(order, [low, high], btype='band')
+    return filtfilt(b, a, signal)
+
+
+def moving_average(signal, window_size=5):
+    """
+    Applique un lissage par moyenne mobile.
+    """
+    return np.convolve(signal, np.ones(window_size)/window_size, mode='same')
+
+
 if __name__ == "__main__":
     filepath = "data/data1/Sansinjection.txt"
 
@@ -54,74 +73,44 @@ if __name__ == "__main__":
 
     if df is not None:
         ecg_signal = df["HR"].values
-        # Utiliser la colonne "Time" pour l'axe des temps
         time = df["Time"].values
         sampling_rate = 100  # Modifier si besoin
 
-        # Vérifier si le signal ECG contient suffisamment de données
-        if len(ecg_signal) < sampling_rate * 2:
+        # Vérifier si le signal ECG est inversé et le corriger si nécessaire
+        if np.median(ecg_signal) < 0:
+            print("⚠️ Signal inversé détecté. Correction appliquée.")
+            ecg_signal = -ecg_signal
+
+        # === 1. PRÉ-FILTRAGE avec SciPy (Butterworth) ===
+        ecg_filtered = butter_bandpass_filter(
+            ecg_signal, lowcut=0.5, highcut=40, fs=sampling_rate)
+
+        # === 2. LISSEMENT du signal (Moyenne Mobile) ===
+        ecg_smoothed = moving_average(ecg_filtered, window_size=5)
+
+        # Vérifier si le signal contient assez de points
+        if len(ecg_smoothed) < sampling_rate * 2:
             print("❌ Trop peu de données pour l'analyse ECG.")
         else:
             # Détection des ondes PQRST avec BioSPPy
-            out = biosppy_ecg.ecg(
-                signal=ecg_signal, sampling_rate=sampling_rate, show=False)
+            out = biosppy_ecg.ecg(signal=ecg_smoothed,
+                                  sampling_rate=sampling_rate, show=False)
             filtered_signal = out["filtered"]
             r_peaks = out["rpeaks"]
 
-            # Détection des autres pics avec des heuristiques
-            q_peaks, s_peaks, p_peaks, t_peaks = [], [], [], []
-            q_window, s_window, p_window = int(
-                0.05 * sampling_rate), int(0.05 * sampling_rate), int(0.15 * sampling_rate)
-
-            for i, r in enumerate(r_peaks):
-                start_q, end_q = max(r - q_window, 0), r
-                q_peaks.append(
-                    np.argmin(filtered_signal[start_q:end_q]) + start_q)
-
-                start_s, end_s = r, min(r + s_window, len(filtered_signal))
-                s_peaks.append(
-                    np.argmin(filtered_signal[start_s:end_s]) + start_s)
-
-                start_p, end_p = max(q_peaks[-1] - p_window, 0), q_peaks[-1]
-                p_peaks.append(
-                    np.argmax(filtered_signal[start_p:end_p]) + start_p)
-
-                if i < len(r_peaks) - 1:
-                    next_r = r_peaks[i+1]
-                else:
-                    next_r = len(filtered_signal)
-                t_offset, margin = int(
-                    0.02 * sampling_rate), int(0.05 * sampling_rate)
-                start_t = s_peaks[-1] + t_offset if s_peaks else 0
-                end_t = max(next_r - margin, start_t + 1)
-                t_peaks.append(
-                    np.argmax(filtered_signal[start_t:end_t]) + start_t)
-
-            # Tracé du signal ECG avec les pics détectés
+            # Tracé du signal ECG avec les R-peaks détectés
             plt.figure(figsize=(12, 6))
             plt.plot(time, filtered_signal,
                      label="ECG Filtré (BioSPPy)", color='black')
             plt.scatter(time[r_peaks], filtered_signal[r_peaks],
                         color='red', label="R-peaks")
-            plt.scatter(time[q_peaks], filtered_signal[q_peaks],
-                        color='green', label="Q-peaks")
-            plt.scatter(time[s_peaks], filtered_signal[s_peaks],
-                        color='magenta', label="S-peaks")
-            plt.scatter(time[p_peaks], filtered_signal[p_peaks],
-                        color='cyan', label="P-peaks")
-            plt.scatter(time[t_peaks], filtered_signal[t_peaks],
-                        color='yellow', label="T-peaks")
 
             plt.xlabel("Temps (s)")
             plt.ylabel("Amplitude")
             plt.title(
-                f"Détection des ondes PQRST avec BioSPPy ({start_time}s - {end_time}s)")
+                f"Détection des ondes ECG avec BioSPPy ({start_time}s - {end_time}s)")
             plt.legend()
             plt.show()
 
             # Affichage des indices détectés
             print("Detected R-peaks indices:", r_peaks)
-            print("Detected Q-peaks indices:", q_peaks)
-            print("Detected S-peaks indices:", s_peaks)
-            print("Detected P-peaks indices:", p_peaks)
-            print("Detected T-peaks indices:", t_peaks)
