@@ -1,52 +1,51 @@
-
-"""
-Script d'exemple pour charger et tracer un signal physiologique à partir des données PRONTO.
-"""
-
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
-import os
 
+# === Paramètres ===
+filepath = "data/data1/Sansinjection.txt"  # Ton fichier
+start_time = 0       # début en secondes
+end_time = 30        # fin en secondes
+interval_ms = 5      # intervalle entre chaque mesure
 
-def load_pronto_data(filepath):
-    """
-    Charge un fichier de données PRONTO et reconstruit un temps uniforme à 5ms.
-    """
-    df = pd.read_csv(filepath, sep="\t", header=None, encoding='ISO-8859-1')
-    df.columns = ["Time", "BP", "Av BP", "HR", "D",
-                  "HR2", "Comment", "Extra"][:df.shape[1]]
+# === Chargement brut ===
+df = pd.read_csv(filepath, sep='\t', header=None,
+                 encoding='ISO-8859-1', engine="python")
 
-    # Nettoyage
-    for col in ["Time", "BP", "Av BP", "HR", "D", "HR2"]:
-        df[col] = df[col].astype(str).str.replace(",", ".", regex=False)
-        df[col] = pd.to_numeric(df[col], errors='coerce')
+# Affecter les noms de colonnes (si 8 colonnes max)
+df.columns = ["Time", "BP", "Av BP", "HR", "D",
+              "HR2", "Comment", "Extra"][:df.shape[1]]
 
-    df = df.dropna()
+# Supprimer les lignes contenant du texte dans des colonnes numériques
+for col in ["BP", "Av BP", "HR", "D", "HR2"]:
+    df[col] = pd.to_numeric(df[col].astype(
+        str).str.replace(",", "."), errors="coerce")
 
-    # Recalcul du temps (5 ms entre les points)
-    df["Reconstructed_Time"] = [i * 0.005 for i in range(len(df))]
+# Supprimer les colonnes inutiles
+df.drop(columns=[c for c in ["Comment", "Extra"]
+        if c in df.columns], inplace=True)
 
-    return df
+# Supprimer les lignes incomplètes
+df.dropna(inplace=True)
 
+# Recalcul de la colonne "Time"
+df["Time"] = np.arange(0, len(df)) * (interval_ms / 1000)
+min_time, max_time = df["Time"].min(), df["Time"].max()
+print(f"📌 Temps total disponible : {min_time:.2f}s à {max_time:.2f}s")
 
-def plot_physio_signals(df):
-    """
-    Trace toutes les variables physiologiques disponibles.
-    """
-    plt.figure(figsize=(15, 10))
-    for col in ["BP", "Av BP", "HR", "D", "HR2"]:
-        plt.plot(df["Reconstructed_Time"], df[col], label=col)
+# Filtrer la fenêtre de temps
+df_plot = df[(df["Time"] >= start_time) & (df["Time"] <= end_time)]
 
+# === Tracer les signaux ===
+cols_to_plot = ["BP", "Av BP", "HR", "D", "HR2"]
+
+for col in cols_to_plot:
+    plt.figure(figsize=(14, 4))
+    plt.plot(df_plot["Time"], df_plot[col], label=col)
+    plt.title(f"{col} - Signal brut")
     plt.xlabel("Temps (s)")
-    plt.ylabel("Valeurs physiologiques")
-    plt.title("Signaux bruts PRONTO")
+    plt.ylabel("Amplitude")
+    plt.grid(True)
     plt.legend()
-    plt.grid()
     plt.tight_layout()
     plt.show()
-
-
-if __name__ == "__main__":
-    filepath = os.path.join("data", "data1", "Sansinjection.txt")
-    df = load_pronto_data(filepath)
-    plot_physio_signals(df)
