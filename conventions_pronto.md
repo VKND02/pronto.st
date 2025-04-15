@@ -10,7 +10,7 @@ Voici un petit guide des **bonnes pratiques** à adopter pour rédiger vos scrip
 pronto.st/
 │
 ├── data/                  # Données brutes ou prétraitées (non versionnées)
-│   ├── README.md          # Présentation de l'organisation des fichiers .txt
+│   ├── README_data.md          # Présentation de l'organisation des fichiers .txt
 │   └── data1/             # Données du TP1, c'est à dire tout les fichiers .txt en rapport avec le TP1.
 │
 ├── notebooks/             # Tous les fichiers Jupyter (.ipynb)
