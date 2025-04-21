@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../computer_science/S6"
+		},
+		{
+			"path": "../computer_science/S6/POO/S04"
+		}
+	],
+	"settings": {
+		"java.debug.settings.onBuildFailureProceed": true
+	}
+}
