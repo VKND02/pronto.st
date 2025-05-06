@@ -7,42 +7,26 @@ import neurokit2 as nk
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import medfilt
 
-# ----------- CHARGEMENT DES DONNÉES -----------
+# ----------- CHARGEMENT MIS À JOUR -----------
 
 
-def load_ecg_data(filepath, start_time, end_time):
-    try:
-        df = pd.read_csv(filepath, sep='\t', header=None,
-                         encoding='ISO-8859-1', engine='python')
-        df.columns = ["Time", "BP", "Av BP", "HR", "D",
-                      "HR2", "Comment", "Extra"][:df.shape[1]]
+def load_data(filepath, interval_ms=5):
+    df = pd.read_csv(filepath, sep='\t', header=None,
+                     encoding='ISO-8859-1', engine="python")
 
-        # Colonnes utiles (on enlève "Comment" et "Extra")
-        useful_cols = [col for col in ["Time", "BP",
-                                       "Av BP", "HR", "D", "HR2"] if col in df.columns]
-        df = df[useful_cols]
+    df.columns = ["Time", "HR", "Av BP", "BP", "D",
+                  "BP2", "Comment", "Extra"][:df.shape[1]]
 
-        # Conversion , -> .
-        for col in df.columns:
-            df[col] = df[col].astype(str).str.replace(',', '.', regex=True)
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+    for col in ["BP", "Av BP", "HR", "D", "BP2"]:
+        df[col] = pd.to_numeric(df[col].astype(
+            str).str.replace(",", "."), errors="coerce")
 
-        df.dropna(inplace=True)
+    df.drop(columns=[c for c in ["Comment", "Extra"]
+            if c in df.columns], inplace=True)
+    df.dropna(inplace=True)
 
-        # Limite temporelle
-        min_time, max_time = df["Time"].min(), df["Time"].max()
-        print(f"📌 Temps minimum : {min_time}s | Temps maximum : {max_time}s")
-
-        start_time = max(start_time, min_time)
-        end_time = min(end_time, max_time)
-        df = df[(df["Time"] >= start_time) & (df["Time"] <= end_time)]
-
-        print(f"✅ Données ECG chargées entre {start_time}s et {end_time}s !")
-        return df.reset_index(drop=True)
-
-    except Exception as e:
-        print(f"❌ Erreur lors du chargement du fichier : {e}")
-        return None
+    df["Time"] = np.arange(0, len(df)) * (interval_ms / 1000)
+    return df
 
 # ----------- MÉTHODES DE TRAITEMENT -----------
 
@@ -50,7 +34,7 @@ def load_ecg_data(filepath, start_time, end_time):
 def filter_signal(signal, sampling_rate=200):
     filters = {}
 
-    # 1. Filtrage Butterworth (0.5-45 Hz)
+    # 1. Butterworth (0.5-45 Hz)
     try:
         nyq = 0.5 * sampling_rate
         b, a = sp.butter(2, [0.5/nyq, 45/nyq], btype='band')
@@ -58,20 +42,27 @@ def filter_signal(signal, sampling_rate=200):
     except:
         filters['butterworth'] = None
 
-    # 2. Gaussian Filter (sigma=2)
+    # 2. Gaussian
     filters['gaussian'] = gaussian_filter1d(signal, sigma=2)
 
-    # 3. Median Filter (fenêtre = 5)
+    # 2b. Double Gaussian (2 passes)
+    try:
+        double_pass = gaussian_filter1d(signal, sigma=2)
+        filters['double_gaussian'] = gaussian_filter1d(double_pass, sigma=2)
+    except:
+        filters['double_gaussian'] = None
+
+    # 3. Median
     filters['median'] = medfilt(signal, kernel_size=5)
 
-    # 4. NeuroKit2 - Clean ECG
+    # 4. NeuroKit clean
     try:
         filters['neurokit_clean'] = nk.ecg_clean(
             signal, sampling_rate=sampling_rate, method="neurokit")
     except:
         filters['neurokit_clean'] = None
 
-    # 5. Wavelet Denoising (Daubechies)
+    # 5. Wavelet denoise
     try:
         coeffs = pywt.wavedec(signal, 'db4', level=4)
         threshold = np.median(
@@ -83,22 +74,22 @@ def filter_signal(signal, sampling_rate=200):
 
     return filters
 
-# ----------- AFFICHAGE DES SIGNES -----------
+# ----------- AFFICHAGE -----------
 
 
-def plot_signals(raw_signals, filtered_signals_dict, time, column_name):
-    fig, axs = plt.subplots(len(filtered_signals_dict) + 1,
-                            1, figsize=(14, 2.5 * (len(filtered_signals_dict) + 1)))
+def plot_signals(raw_signal, filtered_dict, time, column_name="HR"):
+    fig, axs = plt.subplots(len(filtered_dict) + 1, 1,
+                            figsize=(14, 2.5 * (len(filtered_dict) + 1)))
 
     # Signal brut
-    axs[0].plot(time, raw_signals, label="Signal brut", color='black')
+    axs[0].plot(time, raw_signal, label="Signal brut", color='black')
     axs[0].set_title(f"{column_name} - Brut")
     axs[0].legend()
 
-    # Signaux filtrés
-    for i, (name, signal) in enumerate(filtered_signals_dict.items(), start=1):
+    # Filtres
+    for i, (name, signal) in enumerate(filtered_dict.items(), start=1):
         if signal is not None:
-            signal = signal[:len(time)]  # découpage si nécessaire
+            signal = signal[:len(time)]
             axs[i].plot(time, signal, label=name)
             axs[i].set_title(f"{column_name} - {name}")
             axs[i].legend()
@@ -110,31 +101,27 @@ def plot_signals(raw_signals, filtered_signals_dict, time, column_name):
     plt.tight_layout()
     plt.show()
 
-
 # ----------- MAIN -----------
 
+
 if __name__ == "__main__":
-    filepath = "data/data1/Sansinjection.txt"  # <-- À adapter si besoin
-    start_time, end_time = 13.9, 30
-    sampling_rate = 200  # 1 point toutes les 5 ms
+    filepath = "data/data1/Sansinjection.txt"
+    start_time, end_time = 15, 30
+    sampling_rate = 200  # 5ms entre deux mesures
+    interval_ms = 5
 
-    df = load_ecg_data(filepath, start_time, end_time)
+    df = load_data(filepath, interval_ms=interval_ms)
+    min_time, max_time = df["Time"].min(), df["Time"].max()
+    print(f"📌 Temps total disponible : {min_time:.2f}s à {max_time:.2f}s")
 
-    if df is not None:
-        time = df["Time"].values
+    # Fenêtrage temporel
+    df = df[(df["Time"] >= start_time) & (
+        df["Time"] <= end_time)].reset_index(drop=True)
+    time = df["Time"].values
+    raw_hr = df["HR"].values
 
-        # Pour chaque colonne physiologique, on traite et affiche
-        for col in df.columns:
-            if col == "Time":
-                continue
+    print("\n🔍 Traitement du signal HR")
+    filtered_hr = filter_signal(raw_hr, sampling_rate=sampling_rate)
 
-            raw = df[col].values
-            print(f"\n🔍 Traitement du signal : {col}")
-            filtered = filter_signal(raw, sampling_rate=sampling_rate)
-
-            # Ajustement taille si nécessaire
-            for k in filtered:
-                if filtered[k] is not None and len(filtered[k]) != len(time):
-                    filtered[k] = filtered[k][:len(time)]
-
-            plot_signals(raw, filtered, time, col)
+    # Affichage des signaux
+    plot_signals(raw_hr, filtered_hr, time, column_name="HR")

@@ -7,10 +7,10 @@ def load_data(filepath, interval_ms=5):
     df = pd.read_csv(filepath, sep='\t', header=None,
                      encoding='ISO-8859-1', engine="python")
 
-    df.columns = ["Time", "BP", "Av BP", "HR", "D",
-                  "HR2", "Comment", "Extra"][:df.shape[1]]
+    df.columns = ["Time", "HR", "Av BP", "BP", "D",
+                  "BP2", "Comment", "Extra"][:df.shape[1]]
 
-    for col in ["BP", "Av BP", "HR", "D", "HR2"]:
+    for col in ["BP", "Av BP", "HR", "D", "BP2"]:
         df[col] = pd.to_numeric(df[col].astype(
             str).str.replace(",", "."), errors="coerce")
 
@@ -24,7 +24,7 @@ def load_data(filepath, interval_ms=5):
 
 def plot_pronto_signals(df, start_time, end_time):
     df_plot = df[(df["Time"] >= start_time) & (df["Time"] <= end_time)]
-    cols_to_plot = ["BP", "Av BP", "HR", "D", "HR2"]
+    cols_to_plot = ["BP", "Av BP", "HR", "D", "BP2"]
 
     for col in cols_to_plot:
         plt.figure(figsize=(14, 4))

@@ -9,11 +9,11 @@ Chaque fichier correspond à un TP et contient les colonnes suivantes (séparée
 | Colonne      | Signification                             |
 |--------------|-------------------------------------------|
 | Time         | Temps                                     |
-| BP           | Pression artérielle                       |
-| Av BP        | Pression artérielle moyenne               |
 | HR           | Fréquence cardiaque (Heart Rate)          |
+| Av BP        | Pression artérielle moyenne               |
+| BP           | Pression artérielle                       |
 | D            | Diurèse                                   |
-| HR2          | Deuxième mesure de fréquence cardiaque    |
+| BP2          | Deuxième mesure de la pression arterielle |
 | Comment      | Commentaires ajoutés pendant l'expérience |
 | Extra        | Colonne parfois vide ou non définie       |
 
