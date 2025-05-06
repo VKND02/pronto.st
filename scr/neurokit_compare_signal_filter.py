@@ -9,8 +9,8 @@ def load_ecg_data(filepath, start_time, end_time):
     try:
         df = pd.read_csv(filepath, sep='\t', header=None,
                          encoding='ISO-8859-1', engine='python')
-        df.columns = ["Time", "BP", "Av BP", "HR", "D",
-                      "HR2", "Comment", "Extra"][:df.shape[1]]
+        df.columns = ["Time", "HR", "Av BP", "BP", "D",
+                      "BP2", "Comment", "Extra"][:df.shape[1]]
         df = df[["Time", "HR"]]
 
         df["Time"] = df["Time"].astype(str).str.replace(
@@ -34,7 +34,7 @@ def load_ecg_data(filepath, start_time, end_time):
 
 
 if __name__ == "__main__":
-    filepath = "data/data1/Ocytocine.txt"  # Chemin du fichier ECG
+    filepath = "data/data1/Sansinjection.txt"  # Chemin du fichier ECG
     start_time, end_time = 300, 310  # Plage temporelle
     sampling_rate = 100  # Modifier si nécessaire
 
