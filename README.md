@@ -14,13 +14,11 @@ pronto.st/
 │   └── data1/             # Dossier contenant les fichiers .txt physiologiques
 │
 ├── notebooks/             # Fichiers Jupyter pour exploration, traitement, visualisation
-│   ├── exemple_format.ipynb    # Exemple de chargement + visualisation
+│   ├── main.ipybn         # Fichier principal
 │
 ├── scr/                   # Fichiers Python réutilisables
 │   ├── traitement_signal.py    # Traitement des signaux par diverses méthodes
-│   ├── main.py                 # Fichier principal (à créer en fin de projet)
-│
-├── results/               # Résultats finaux, graphiques, exports éventuels
+│             
 │
 ├── README.md              # Vous êtes ici
 ├── requirements.txt       # Liste des dépendances Python à installer

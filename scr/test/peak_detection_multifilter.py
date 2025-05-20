@@ -128,7 +128,7 @@ def plot_signals_with_peaks(time, raw, filtered, r, q, s, p, t):
 # ----------- MAIN -----------
 
 if __name__ == "__main__":
-    filepath = "data/data1/Sansinjection.txt"
+    filepath = "data/data1/Ocytocine.txt"
     start_time = 0
     end_time = 20
     interval_ms = 5
