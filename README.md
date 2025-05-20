@@ -1,4 +1,4 @@
-# PRONTO.ST — Physiological Signal Decomposition and Generation
+# PRONTO.ST — Decomposition et génération de série temporelle pour l'apprentissage de la physiologie
 
 **PRONTO.ST** est un projet développé à l’IMT Atlantique (Nantes, 2025) dans le cadre de l’UE PRONTO.  
 Il vise à lire, analyser et générer des signaux physiologiques cardiaques (HR, ECG, BP), via un pipeline modulaire entièrement codé en Python.
