@@ -1,0 +1,7 @@
+# Bibliothèques Python nécessaires pour le projet PRONTO (Décomposition et génération de série temporelle pour la physiologie)
+
+pandas
+numpy
+matplotlib
+scipy
+neurokit2
